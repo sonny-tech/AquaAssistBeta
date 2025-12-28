@@ -3,29 +3,25 @@ import streamlit as st
 import os
 
 st.set_page_config(page_title="Lesson Plan Library", layout="centered")
-st.title("Swim Lesson Plan Library")
+st.title("AquaAssist Beta")
+
+PDF_DIR = "pdfs"
 
 LEVEL_TO_PDF = {
-    "tiny tots 4": "pdfs/tiny_tots_4.pdf",
-    "swimmer 6": "pdfs/swimmer_6.pdf",
-    "junior masters 1": "pdfs/junior_masters_1.pdf"
+    os.path.splitext(f)[0].replace("_", " ").lower(): os.path.join(PDF_DIR, f)
+    for f in os.listdir(PDF_DIR)
+    if f.endswith(".pdf")
 }
 
 def display_pdf(path):
     with open(path, "rb") as f:
         base64_pdf = base64.b64encode(f.read()).decode("utf-8")
 
-    pdf_html = f"""
-    <iframe
-        src="data:application/pdf;base64,{base64_pdf}"
-        width="100%"
-        height="600"
-        style="border: none;">
-    </iframe>
-    """
-
-    st.markdown(pdf_html, unsafe_allow_html=True)
-
+    st.markdown(
+        f'<iframe src="data:application/pdf;base64,{base64_pdf}" '
+        f'width="100%" height="600" style="border:none;"></iframe>',
+        unsafe_allow_html=True
+    )
 
 user_input = st.chat_input("Ask for a lesson plan")
 
