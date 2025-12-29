@@ -7,11 +7,16 @@ st.title("AquaAssist Beta")
 
 PDF_DIR = "pdfs"
 
-LEVEL_TO_PDF = {
-    os.path.splitext(f)[0].replace("_", " ").lower(): os.path.join(PDF_DIR, f)
-    for f in os.listdir(PDF_DIR)
-    if f.endswith(".pdf")
-}
+def get_level_to_pdf():
+    if not os.path.exists(PDF_DIR):
+        return {}
+
+    return {
+        os.path.splitext(f)[0].replace("_", " ").lower(): os.path.join(PDF_DIR, f)
+        for f in os.listdir(PDF_DIR)
+        if f.lower().endswith(".pdf")
+    }
+
 
 def display_pdf(path):
     with open(path, "rb") as f:
@@ -27,6 +32,7 @@ user_input = st.chat_input("Ask for a lesson plan")
 
 if user_input:
     normalized = user_input.lower()
+    LEVEL_TO_PDF = get_level_to_pdf()
 
     matched_pdf = None
     for level, path in LEVEL_TO_PDF.items():
