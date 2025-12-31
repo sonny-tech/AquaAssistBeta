@@ -7,7 +7,7 @@ import pdfplumber
 # ------------------ CONFIG ------------------
 
 st.set_page_config(page_title="Lesson Plan Library", layout="centered")
-st.title("AquaAssist Beta")
+st.title("AquaAssist Alpha")
 
 PDF_DIR = "pdfs"
 
@@ -39,33 +39,47 @@ def detect_stroke(user_input):
 
 
 def extract_sections_from_pdf(pdf_path):
-    full_text = ""
-
     with pdfplumber.open(pdf_path) as pdf:
+        lines = []
         for page in pdf.pages:
             text = page.extract_text()
             if text:
-                full_text += "\n" + text
-
-    text_lower = full_text.lower()
-
-    matches = []
-    for stroke in STROKES:
-        for m in re.finditer(rf"\b{stroke}\b", text_lower):
-            matches.append((m.start(), stroke))
-
-    if not matches:
-        return {}
-
-    matches.sort(key=lambda x: x[0])
+                lines.extend(text.split("\n"))
 
     sections = {}
-    for i, (start_idx, stroke) in enumerate(matches):
-        end_idx = matches[i + 1][0] if i + 1 < len(matches) else len(full_text)
-        sections[stroke] = full_text[start_idx:end_idx].strip()
+    current_header = None
+    current_content = []
+
+    for line in lines:
+        line_clean = line.strip()
+        line_lower = line_clean.lower()
+
+        # Heuristic: section headers
+        is_header = (
+            any(stroke in line_lower for stroke in STROKES)
+            and (line_lower.endswith(":") or "day" in line_lower)
+            and len(line_clean) < 60
+        )
+
+        if is_header:
+            if current_header:
+                sections[current_header] = "\n".join(current_content).strip()
+            current_header = line_clean
+            current_content = []
+        else:
+            if current_header:
+                current_content.append(line_clean)
+
+    if current_header:
+        sections[current_header] = "\n".join(current_content).strip()
 
     return sections
 
+def find_section_for_stroke(sections, stroke):
+    for header, content in sections.items():
+        if stroke in header.lower():
+            return header, content
+    return None, None
 
 def display_pdf(path):
     with open(path, "rb") as f:
@@ -113,10 +127,11 @@ if user_input:
             # Stroke-specific request
             if stroke:
                 sections = extract_sections_from_pdf(matched_pdf)
+                header, content = find_section_for_stroke(sections, stroke)
 
-                if stroke in sections:
-                    st.write(f"### {matched_level.title()} — {stroke.title()}")
-                    st.text(sections[stroke])
+                if content:
+                    st.write(f"### {header}")
+                    st.text(content)
                 else:
                     st.write("That stroke section was not found in this lesson plan.")
             else:
