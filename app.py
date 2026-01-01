@@ -1,13 +1,12 @@
 import base64
 import streamlit as st
 import os
-import re
 import pdfplumber
 
 # ------------------ CONFIG ------------------
 
 st.set_page_config(page_title="Lesson Plan Library", layout="centered")
-st.title("AquaAssist Alpha")
+st.title("AquaAssist Beta")
 
 PDF_DIR = "pdfs"
 
@@ -18,7 +17,7 @@ STROKES = [
     "butterfly"
 ]
 
-# ------------------ HELPERS ------------------
+# ------------------ FILE DISCOVERY ------------------
 
 def get_level_to_pdf():
     if not os.path.exists(PDF_DIR):
@@ -30,6 +29,7 @@ def get_level_to_pdf():
         if f.lower().endswith(".pdf")
     }
 
+# ------------------ STROKE DETECTION ------------------
 
 def detect_stroke(user_input):
     for stroke in STROKES:
@@ -37,6 +37,23 @@ def detect_stroke(user_input):
             return stroke
     return None
 
+# ------------------ HEADER HEURISTIC ------------------
+
+def is_section_header(line):
+    line_lower = line.lower()
+
+    has_stroke = any(stroke in line_lower for stroke in STROKES)
+    looks_like_drill = any(
+        token in line_lower for token in [" x ", " m", "sec", "meters"]
+    )
+
+    return (
+        has_stroke
+        and not looks_like_drill
+        and len(line.strip()) < 80
+    )
+
+# ------------------ PDF PARSING ------------------
 
 def extract_sections_from_pdf(pdf_path):
     with pdfplumber.open(pdf_path) as pdf:
@@ -52,16 +69,11 @@ def extract_sections_from_pdf(pdf_path):
 
     for line in lines:
         line_clean = line.strip()
-        line_lower = line_clean.lower()
 
-        # Heuristic: section headers
-        is_header = (
-            any(stroke in line_lower for stroke in STROKES)
-            and (line_lower.endswith(":") or "day" in line_lower)
-            and len(line_clean) < 60
-        )
+        if not line_clean:
+            continue
 
-        if is_header:
+        if is_section_header(line_clean):
             if current_header:
                 sections[current_header] = "\n".join(current_content).strip()
             current_header = line_clean
@@ -81,6 +93,8 @@ def find_section_for_stroke(sections, stroke):
             return header, content
     return None, None
 
+# ------------------ PDF DISPLAY ------------------
+
 def display_pdf(path):
     with open(path, "rb") as f:
         base64_pdf = base64.b64encode(f.read()).decode("utf-8")
@@ -99,7 +113,7 @@ def display_pdf(path):
 
 # ------------------ UI ------------------
 
-st.caption("Ask for a lesson plan. Example: **'Swimmer 6 front crawl'**")
+st.caption("Example: **'Swimmer 6 front crawl'** or **'Junior Masters 1 butterfly'**")
 
 user_input = st.chat_input("Ask for a lesson plan")
 
@@ -124,7 +138,6 @@ if user_input:
             st.write("Available lesson plans:")
             st.write(list(LEVEL_TO_PDF.keys()))
         else:
-            # Stroke-specific request
             if stroke:
                 sections = extract_sections_from_pdf(matched_pdf)
                 header, content = find_section_for_stroke(sections, stroke)
@@ -135,7 +148,6 @@ if user_input:
                 else:
                     st.write("That stroke section was not found in this lesson plan.")
             else:
-                # Full PDF
                 st.write(f"### {matched_level.title()} — Full Lesson Plan")
                 display_pdf(matched_pdf)
 
