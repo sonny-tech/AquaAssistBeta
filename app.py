@@ -6,7 +6,7 @@ import pdfplumber
 # ------------------ CONFIG ------------------
 
 st.set_page_config(page_title="Lesson Plan Library", layout="centered")
-st.title("AquaAssist Beta")
+st.title("AquaAssist Alpha")
 
 PDF_DIR = "pdfs"
 
@@ -31,11 +31,9 @@ def get_level_to_pdf():
 
 # ------------------ STROKE DETECTION ------------------
 
-def detect_stroke(user_input):
-    for stroke in STROKES:
-        if stroke in user_input:
-            return stroke
-    return None
+def detect_strokes(user_input):
+    return [stroke for stroke in STROKES if stroke in user_input]
+
 
 # ------------------ HEADER HEURISTIC ------------------
 
@@ -87,10 +85,22 @@ def extract_sections_from_pdf(pdf_path):
 
     return sections
 
-def find_section_for_stroke(sections, stroke):
+def find_best_section(sections, requested_strokes):
+    if not requested_strokes:
+        return None, None
+
+    # 1 Prefer headers that contain ALL requested strokes
     for header, content in sections.items():
-        if stroke in header.lower():
+        header_lower = header.lower()
+        if all(stroke in header_lower for stroke in requested_strokes):
             return header, content
+
+    # 2 Fallback: header containing ANY requested stroke
+    for header, content in sections.items():
+        header_lower = header.lower()
+        if any(stroke in header_lower for stroke in requested_strokes):
+            return header, content
+
     return None, None
 
 # ------------------ PDF DISPLAY ------------------
@@ -130,7 +140,7 @@ if user_input:
             matched_level = level
             break
 
-    stroke = detect_stroke(normalized)
+    requested_strokes = detect_strokes(normalized)
 
     with st.chat_message("assistant"):
         if not matched_pdf or not os.path.exists(matched_pdf):
@@ -138,15 +148,16 @@ if user_input:
             st.write("Available lesson plans:")
             st.write(list(LEVEL_TO_PDF.keys()))
         else:
-            if stroke:
+            if requested_strokes:
                 sections = extract_sections_from_pdf(matched_pdf)
-                header, content = find_section_for_stroke(sections, stroke)
+                header, content = find_best_section(sections, requested_strokes)
 
                 if content:
                     st.write(f"### {header}")
                     st.text(content)
                 else:
-                    st.write("That stroke section was not found in this lesson plan.")
+                     st.write("That section was not found in this lesson plan.")
+
             else:
                 st.write(f"### {matched_level.title()} — Full Lesson Plan")
                 display_pdf(matched_pdf)
