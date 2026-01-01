@@ -121,6 +121,18 @@ def display_pdf(path):
         unsafe_allow_html=True
     )
 
+#-----------------HELPER FUNCTION TO FILTER LINES-----------------
+def filter_section_content(content, requested_strokes):
+    if not requested_strokes:
+        return content
+
+    filtered_lines = []
+    for line in content.split("\n"):
+        if any(stroke in line.lower() for stroke in requested_strokes):
+            filtered_lines.append(line)
+
+    return "\n".join(filtered_lines)
+
 # ------------------ UI ------------------
 
 st.caption("Example: **'Swimmer 6 front crawl'** or **'Junior Masters 1 butterfly'**")
@@ -154,7 +166,13 @@ if user_input:
 
                 if content:
                     st.write(f"### {header}")
-                    st.text(content)
+                    filtered = filter_section_content(content, requested_strokes)
+
+                    if filtered.strip():
+                        st.text(filtered)
+                    else:
+                        st.text(content)  # fallback if filtering removes everything
+
                 else:
                      st.write("That section was not found in this lesson plan.")
 
