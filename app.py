@@ -41,15 +41,11 @@ def is_section_header(line):
     line_lower = line.lower()
 
     has_stroke = any(stroke in line_lower for stroke in STROKES)
-    looks_like_drill = any(
-        token in line_lower for token in [" x ", " m", "sec", "meters"]
-    )
+    has_day_word = "day" in line_lower
+    ends_with_colon = line.strip().endswith(":")
 
-    return (
-        has_stroke
-        and not looks_like_drill
-        and len(line.strip()) < 80
-    )
+    return has_stroke and (has_day_word or ends_with_colon)
+
 
 # ------------------ PDF PARSING ------------------
 
