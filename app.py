@@ -17,6 +17,12 @@ STROKES = [
     "butterfly"
 ]
 
+DAY_TYPES = [
+    "evaluation",
+    "swim"
+]
+
+
 # ------------------ FILE DISCOVERY ------------------
 
 def get_level_to_pdf():
@@ -29,10 +35,18 @@ def get_level_to_pdf():
         if f.lower().endswith(".pdf")
     }
 
-# ------------------ STROKE DETECTION ------------------
+# ------------------ KEYWORD DETECTION ------------------
 
-def detect_strokes(user_input):
-    return [stroke for stroke in STROKES if stroke in user_input]
+def detect_keywords(user_input):
+    keywords = []
+    for stroke in STROKES:
+        if stroke in user_input:
+            keywords.append(stroke)
+    for day in DAY_TYPES:
+        if day in user_input:
+            keywords.append(day)
+    return keywords
+
 
 
 # ------------------ HEADER HEURISTIC ------------------
@@ -40,11 +54,16 @@ def detect_strokes(user_input):
 def is_section_header(line):
     line_lower = line.lower()
 
-    has_stroke = any(stroke in line_lower for stroke in STROKES)
+    has_keyword = (
+        any(stroke in line_lower for stroke in STROKES) or
+        any(day in line_lower for day in DAY_TYPES)
+    )
+
     has_day_word = "day" in line_lower
     ends_with_colon = line.strip().endswith(":")
 
-    return has_stroke and (has_day_word or ends_with_colon)
+    return has_keyword and (has_day_word or ends_with_colon)
+
 
 
 # ------------------ PDF PARSING ------------------
@@ -81,20 +100,20 @@ def extract_sections_from_pdf(pdf_path):
 
     return sections
 
-def find_best_section(sections, requested_strokes):
-    if not requested_strokes:
+def find_best_section(sections, requested_keywords):
+    if not requested_keywords:
         return None, None
 
-    # 1 Prefer headers that contain ALL requested strokes
+    # 1 Prefer headers that contain ALL requested keywords
     for header, content in sections.items():
         header_lower = header.lower()
-        if all(stroke in header_lower for stroke in requested_strokes):
+        if all(keyword in header_lower for keyword in requested_keywords):
             return header, content
 
-    # 2 Fallback: header containing ANY requested stroke
+    # 2 Fallback: header containing ANY requested keyword
     for header, content in sections.items():
         header_lower = header.lower()
-        if any(stroke in header_lower for stroke in requested_strokes):
+        if any(keyword in header_lower for keyword in requested_keywords):
             return header, content
 
     return None, None
@@ -148,7 +167,7 @@ if user_input:
             matched_level = level
             break
 
-    requested_strokes = detect_strokes(normalized)
+    requested_keywords = detect_keywords(normalized)
 
     with st.chat_message("assistant"):
         if not matched_pdf or not os.path.exists(matched_pdf):
@@ -156,9 +175,10 @@ if user_input:
             st.write("Available lesson plans:")
             st.write(list(LEVEL_TO_PDF.keys()))
         else:
-            if requested_strokes:
+            if requested_keywords:
                 sections = extract_sections_from_pdf(matched_pdf)
-                header, content = find_best_section(sections, requested_strokes)
+                header, content = find_best_section(sections, requested_keywords)
+
 
                 if content:
                     st.write(f"### {header}")
