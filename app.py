@@ -18,7 +18,7 @@ STROKES = [
 ]
 
 DAY_TYPES = [
-    "pdf"
+    "PDF"
     "evaluation",
     "swim"
 ]
