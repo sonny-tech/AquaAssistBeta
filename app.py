@@ -198,7 +198,7 @@ if user_input:
                     st.write(f"### {header}")
                     st.text(content)
                 else:
-                show_full_lesson_plan(matched_level, matched_pdf)
+                    show_full_lesson_plan(matched_level, matched_pdf)
 
             else:
                 show_full_lesson_plan(matched_level, matched_pdf)
