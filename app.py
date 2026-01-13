@@ -18,6 +18,7 @@ STROKES = [
 ]
 
 DAY_TYPES = [
+    "pdf",
     "evaluation",
     "swim"
 ]
@@ -179,14 +180,19 @@ if user_input:
                 sections = extract_sections_from_pdf(matched_pdf)
                 header, content = find_best_section(sections, requested_keywords)
 
-
                 if content:
                     st.write(f"### {header}")
                     st.text(content)
                 else:
-                    st.write("That section was not found in this lesson plan.")
-
-
+                    st.write("No specific section found — showing full lesson plan.")
+                    display_pdf(matched_pdf)
+                    with open(matched_pdf, "rb") as f:
+                        st.download_button(
+                            "Download PDF",
+                            f,
+                            file_name=os.path.basename(matched_pdf),
+                            mime="application/pdf"
+                        )
             else:
                 st.write(f"### {matched_level.title()} — Full Lesson Plan")
                 display_pdf(matched_pdf)
