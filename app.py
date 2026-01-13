@@ -49,6 +49,20 @@ def detect_keywords(user_input):
     return keywords
 
 
+#-----------HELPER FUNCTION TO PROVIDE FULL LESSON PLAN -----
+def show_full_lesson_plan(level, pdf_path):
+    st.write(f"### {level.title()} — Full Lesson Plan")
+    display_pdf(pdf_path)
+
+    with open(pdf_path, "rb") as f:
+        st.download_button(
+            "Download PDF",
+            f,
+            file_name=os.path.basename(pdf_path),
+            mime="application/pdf"
+        )
+
+
 
 # ------------------ HEADER HEURISTIC ------------------
 
@@ -184,23 +198,7 @@ if user_input:
                     st.write(f"### {header}")
                     st.text(content)
                 else:
-                    st.write("No specific section found — showing full lesson plan.")
-                    display_pdf(matched_pdf)
-                    with open(matched_pdf, "rb") as f:
-                        st.download_button(
-                            "Download PDF",
-                            f,
-                            file_name=os.path.basename(matched_pdf),
-                            mime="application/pdf"
-                        )
-            else:
-                st.write(f"### {matched_level.title()} — Full Lesson Plan")
-                display_pdf(matched_pdf)
+                show_full_lesson_plan(matched_level, matched_pdf)
 
-                with open(matched_pdf, "rb") as f:
-                    st.download_button(
-                        "Download PDF",
-                        f,
-                        file_name=os.path.basename(matched_pdf),
-                        mime="application/pdf"
-                    )
+            else:
+                show_full_lesson_plan(matched_level, matched_pdf)
